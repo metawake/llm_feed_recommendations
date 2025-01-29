@@ -14,6 +14,7 @@ from rss import app, DB_PATH, data_access, rss_service
 # We need pytest-asyncio for async tests
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 def client():
     """
@@ -21,6 +22,7 @@ def client():
     """
     with TestClient(app) as c:
         yield c
+
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_db():
@@ -32,13 +34,16 @@ def setup_db():
         os.remove(DB_PATH)
 
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS user_preferences (
             user_id INTEGER PRIMARY KEY,
             topics TEXT
         )
-    """)
-    conn.execute("""
+    """
+    )
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
@@ -47,9 +52,11 @@ def setup_db():
             content TEXT,
             summary TEXT
         )
-    """)
+    """
+    )
     conn.close()
     yield
+
 
 @pytest.mark.asyncio
 async def test_set_user_preferences(client):
@@ -66,6 +73,7 @@ async def test_set_user_preferences(client):
     assert row is not None
     assert row["topics"] == "AI,Python"
 
+
 @pytest.mark.asyncio
 async def test_manual_rss_refresh(client):
     """
@@ -74,7 +82,10 @@ async def test_manual_rss_refresh(client):
     """
     response = client.post("/rss/refresh")
     assert response.status_code == 200
-    assert response.json() == {"message": "RSS feeds are being refreshed in the background."}
+    assert response.json() == {
+        "message": "RSS feeds are being refreshed in the background."
+    }
+
 
 @pytest.mark.asyncio
 async def test_recommendations_workflow(client):
@@ -91,7 +102,7 @@ async def test_recommendations_workflow(client):
 
     # 2. Manually call the refresh in a synchronous request
     #    If you want to REALLY parse the feed, we might do an async call:
-    await rss_service.refresh_feeds()  
+    await rss_service.refresh_feeds()
     # This ensures articles are inserted & summarized in DB.
 
     # 3. Get recommendations
@@ -105,16 +116,20 @@ async def test_recommendations_workflow(client):
     # If there's relevant content, you'll see a list of articles with summary
     # For a real test, you'd want to confirm length or certain keys.
 
+
 @pytest.mark.asyncio
 async def test_agent_query(client):
     """
-    Test the /assistant/query endpoint. 
+    Test the /assistant/query endpoint.
     This will do real similarity searches & real LLM calls if not mocked.
     """
-    response = await _async_post(client, "/assistant/query", json={"question": "What's new in AI?"})
+    response = await _async_post(
+        client, "/assistant/query", json={"question": "What's new in AI?"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert "response" in data
+
 
 ########################################################
 # Helper function to do async post with TestClient
@@ -124,6 +139,8 @@ async def _async_post(client, url, json):
     Because TestClient is synchronous, we run it in a thread.
     """
     loop = asyncio.get_running_loop()
+
     def do_request():
         return client.post(url, json=json)
+
     return await loop.run_in_executor(None, do_request)

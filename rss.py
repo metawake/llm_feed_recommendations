@@ -62,7 +62,7 @@ logger.addHandler(log_handler)
 
 logger.info(
     "Starting RSS AI Service",
-    extra={"db_path": DB_PATH, "vector_store": VECTOR_STORE_PATH}
+    extra={"db_path": DB_PATH, "vector_store": VECTOR_STORE_PATH},
 )
 
 
@@ -96,7 +96,9 @@ class AgentQuery(BaseModel):
 ########################################
 class UserNotFoundException(HTTPException):
     def __init__(self):
-        super().__init__(status_code=404, detail="User not found or preferences not set.")
+        super().__init__(
+            status_code=404, detail="User not found or preferences not set."
+        )
 
 
 class RSSFeedException(HTTPException):
@@ -143,7 +145,7 @@ class VectorDataAccess:
         self.persist_directory = persist_directory
         self.vector_store = Chroma(
             persist_directory=persist_directory,
-            embedding_function=OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+            embedding_function=OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY),
         )
 
     def add_texts(self, texts: List[str], metadatas: List[dict]):
@@ -161,9 +163,7 @@ class VectorDataAccess:
 ########################################
 class RSSService:
     def __init__(
-        self,
-        sql_data_access: SQLDataAccess,
-        vector_data_access: VectorDataAccess
+        self, sql_data_access: SQLDataAccess, vector_data_access: VectorDataAccess
     ):
         self.sql_data_access = sql_data_access
         self.vector_data_access = vector_data_access
@@ -211,11 +211,10 @@ class RSSService:
         content = entry.get("summary", "")
 
         if not title or not link:
-            logger.warning(f'no title or link for {title} or {link}')
+            logger.warning(f"no title or link for {title} or {link}")
             return
         else:
-            logger.warning(f'processing {title} or {link}')
-
+            logger.warning(f"processing {title} or {link}")
 
         # Insert article ignoring duplicates
         self.sql_data_access.execute_query(
@@ -223,7 +222,7 @@ class RSSService:
             INSERT OR IGNORE INTO articles (title, link, published, content)
             VALUES (?, ?, ?, ?)
             """,
-            (title, link, published, content)
+            (title, link, published, content),
         )
 
         # Check if summary is already stored
@@ -231,23 +230,20 @@ class RSSService:
             "SELECT summary FROM articles WHERE link = ?", (link,)
         )
         if row and row["summary"]:
-            logger.info('Entry already summarized', extra={'link': link})
+            logger.info("Entry already summarized", extra={"link": link})
             return
 
         # Summarize using LLM call in a threadpool
         summary = await to_thread.run_sync(self.summarize_content, title, content)
-        logger.info('Entry summarized', extra={'link': link})
-
+        logger.info("Entry summarized", extra={"link": link})
 
         # Update DB with summary
         self.sql_data_access.execute_query(
-            "UPDATE articles SET summary = ? WHERE link = ?",
-            (summary, link)
+            "UPDATE articles SET summary = ? WHERE link = ?", (summary, link)
         )
 
         self.vector_data_access.add_texts(
-            [content + " " + summary],
-            metadatas=[{"title": title, "link": link}]
+            [content + " " + summary], metadatas=[{"title": title, "link": link}]
         )
 
     def summarize_content(self, title: str, content: str) -> str:
@@ -264,10 +260,7 @@ class UserService:
     def set_preferences(self, user_id: int, preferences: UserPreferences):
         logger.info(
             "Setting preferences",
-            extra={
-                "user_id": user_id,
-                "topics": preferences.topics
-            }
+            extra={"user_id": user_id, "topics": preferences.topics},
         )
         self.sql_data_access.execute_query(
             """
@@ -280,9 +273,7 @@ class UserService:
 
 class RecommendationService:
     def __init__(
-        self,
-        sql_data_access: SQLDataAccess,
-        vector_data_access: VectorDataAccess
+        self, sql_data_access: SQLDataAccess, vector_data_access: VectorDataAccess
     ):
         self.sql_data_access = sql_data_access
         self.vector_data_access = vector_data_access
@@ -290,8 +281,7 @@ class RecommendationService:
     async def get_recommendations(self, user_id: int):
         logger.info("Getting recommendations", extra={"user_id": user_id})
         user = self.sql_data_access.fetch_one(
-            "SELECT topics FROM user_preferences WHERE user_id = ?",
-            (user_id,)
+            "SELECT topics FROM user_preferences WHERE user_id = ?", (user_id,)
         )
         if not user:
             logger.warning("User not found", extra={"user_id": user_id})
@@ -300,22 +290,25 @@ class RecommendationService:
         topics = user["topics"].split(",")
         query = " OR ".join(topics)
         logger.info("Performing similarity search", extra={"query": query})
-        results = self.vector_data_access.similarity_search(query, k=MAX_RECOMMENDATIONS)
+        results = self.vector_data_access.similarity_search(
+            query, k=MAX_RECOMMENDATIONS
+        )
 
         # Return the stored summary from the DB, rather than calling LLM again
         recommendations = []
         for result in results:
             link = result.metadata["link"]
             row = self.sql_data_access.fetch_one(
-                "SELECT title, summary FROM articles WHERE link = ?",
-                (link,)
+                "SELECT title, summary FROM articles WHERE link = ?", (link,)
             )
             if row:
-                recommendations.append({
-                    "title": row["title"],
-                    "link": link,
-                    "summary": row["summary"] or ""
-                })
+                recommendations.append(
+                    {
+                        "title": row["title"],
+                        "link": link,
+                        "summary": row["summary"] or "",
+                    }
+                )
 
         return {"recommendations": recommendations}
 
@@ -340,11 +333,9 @@ class AgentService:
 
         response_list = []
         for r, s in zip(results, summaries):
-            response_list.append({
-                "title": r.metadata["title"],
-                "link": r.metadata["link"],
-                "summary": s
-            })
+            response_list.append(
+                {"title": r.metadata["title"], "link": r.metadata["link"], "summary": s}
+            )
         return {"response": response_list}
 
     async def summarize_agent(self, result):
@@ -353,7 +344,9 @@ class AgentService:
 
     def agent_llm_predict(self, result):
         llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY)
-        prompt = f"Summarize this article: {result.metadata['title']}\n{result.page_content}"
+        prompt = (
+            f"Summarize this article: {result.metadata['title']}\n{result.page_content}"
+        )
         return llm.predict(prompt)
 
 
@@ -420,10 +413,7 @@ async def manual_refresh_rss_feeds(background_tasks: BackgroundTasks):
 
 
 @app.post("/users/{user_id}/preferences", response_model=Dict[str, str])
-def set_user_preferences(
-    user_id: int,
-    preferences: UserPreferences
-):
+def set_user_preferences(user_id: int, preferences: UserPreferences):
     """Set user preferences for recommendations."""
     user_service.set_preferences(user_id, preferences)
     return {"message": "Preferences saved."}
