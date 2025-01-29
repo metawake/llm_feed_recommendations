@@ -1,0 +1,124 @@
+{
+	"info": {
+		"_postman_id": "5e457639-2520-4828-a0d5-d6bb55285d88",
+		"name": "RSS AI Aggregator",
+		"description": "A collection of requests to test our FastAPI-based RSS AI Aggregator service.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "7993918"
+	},
+	"item": [
+		{
+			"name": "Refresh RSS Feeds",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8000/rss/refresh",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"rss",
+						"refresh"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set User Preferences",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"topics\": [\"AI\", \"Python\"]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/users/1/preferences",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"users",
+						"1",
+						"preferences"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get User Recommendations",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:8000/users/1/recommendations",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"users",
+						"1",
+						"recommendations"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Agent Query",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"question\": \"What's new in AI?\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/assistant/query",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"assistant",
+						"query"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

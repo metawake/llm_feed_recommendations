@@ -1,0 +1,14 @@
+typing-inspect
+langchain-community
+fastapi
+uvicorn
+pydantic
+fastapi-utils
+feedparser
+langchain
+openai
+chromadb
+pytest
+tiktoken
+python-json-logger
+pytest-asyncio
